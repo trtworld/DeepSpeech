@@ -392,15 +392,18 @@ def log_grads_and_vars(grads_and_vars):
         log_variable(variable, gradient=gradient)
 
 
-def try_loading(session, saver, checkpoint_filename, caption):
+def try_loading(session, saver, checkpoint_filename, caption, load_step=True):
     try:
         checkpoint = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir, checkpoint_filename)
         if not checkpoint:
             return False
         checkpoint_path = checkpoint.model_checkpoint_path
         saver.restore(session, checkpoint_path)
-        restored_step = session.run(tfv1.train.get_global_step())
-        log_info('Restored variables from %s checkpoint at %s, step %d' % (caption, checkpoint_path, restored_step))
+        if load_step:
+            restored_step = session.run(tfv1.train.get_or_create_global_step())
+            log_info('Restored variables from %s checkpoint at %s, step %d' % (caption, checkpoint_path, restored_step))
+        else:
+            log_info('Restored variables from %s checkpoint at %s' % (caption, checkpoint_path))
         return True
     except tf.errors.InvalidArgumentError as e:
         log_error(str(e))
@@ -841,13 +844,12 @@ def do_single_file_inference(input_file_path):
         # Restore variables from training checkpoint
         # TODO: This restores the most recent checkpoint, but if we use validation to counteract
         #       over-fitting, we may want to restore an earlier checkpoint.
-        checkpoint = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
-        if not checkpoint:
-            log_error('Checkpoint directory ({}) does not contain a valid checkpoint state.'.format(FLAGS.checkpoint_dir))
+        loaded = try_loading(session, saver, 'checkpoint', 'most recent', load_step=False)
+        if not loaded:
+            loaded = try_loading(session, saver, 'best_dev_checkpoint', 'best validation', load_step=False)
+        if not loaded:
+            print('Could not load checkpoint from {}'.format(FLAGS.checkpoint_dir))
             exit(1)
-
-        checkpoint_path = checkpoint.model_checkpoint_path
-        saver.restore(session, checkpoint_path)
 
         features, features_len = audiofile_to_features(input_file_path)
         previous_state_c = np.zeros([1, Config.n_cell_dim])
@@ -873,7 +875,7 @@ def do_single_file_inference(input_file_path):
         scorer = Scorer(FLAGS.lm_alpha, FLAGS.lm_beta,
                         FLAGS.lm_binary_path, FLAGS.lm_trie_path,
                         Config.alphabet)
-        decoded = ctc_beam_search_decoder(logits, Config.alphabet, FLAGS.beam_width, scorer=scorer)
+        decoded = ctc_beam_search_decoder(logits, Config.alphabet, FLAGS.beam_width, scorer=scorer, cutoff_prob=0.99, cutoff_top_n=300)
         # Print highest probability result
         print(decoded[0][1])
 

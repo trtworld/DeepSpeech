@@ -69,6 +69,7 @@ ctc_beam_search_decoder_batch(const double *probs,
 
 %include "output.h"
 %include "scorer.h"
+%include "path_trie.h"
 %include "ctc_beam_search_decoder.h"
 
 %template(IntVector) std::vector<int>;

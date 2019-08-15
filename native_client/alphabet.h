@@ -21,6 +21,7 @@ public:
 
   int init(const char *) {
     size_ = 256;
+    return 0;
   }
 
   const std::string StringFromLabel(unsigned int label) const {

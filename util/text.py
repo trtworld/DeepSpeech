@@ -18,8 +18,10 @@ class Alphabet(object):
     def label_from_string(self, string):
         assert False
 
-    def decode(self, labels):
+    @staticmethod
+    def decode(labels):
         return bytes(labels).decode('utf-8', errors='replace')
+        # return bytes(labels)
 
     def size(self):
         return self._size
@@ -34,7 +36,7 @@ def text_to_char_array(series):
     integers and return a numpy array representing the processed string.
     """
     try:
-        series['transcript'] = np.frombuffer(series['transcript'].encode('utf-8'), np.uint8).astype(np.int32)
+        series['transcript'] = np.frombuffer(series['transcript'].replace(' ', '').encode('utf-8'), np.uint8).astype(np.int32)
     except KeyError as e:
         # Provide the row context (especially wav_filename) for alphabet errors
         raise ValueError(str(e), series)

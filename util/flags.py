@@ -147,10 +147,6 @@ def create_flags():
                          os.path.isfile,
                          message='The file pointed to by --lm_binary_path must exist and be readable.')
 
-    f.register_validator('lm_trie_path',
-                         os.path.isfile,
-                         message='The file pointed to by --lm_trie_path must exist and be readable.')
-
     f.register_validator('alphabet_config_path',
                          os.path.isfile,
                          message='The file pointed to by --alphabet_config_path must exist and be readable.')

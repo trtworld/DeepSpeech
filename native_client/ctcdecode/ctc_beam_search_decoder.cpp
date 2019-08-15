@@ -71,6 +71,7 @@ DecoderState::next(const double *probs,
         get_pruned_log_probs(prob, class_dim, cutoff_prob_, cutoff_top_n_);
     // loop over class dim
     for (size_t index = 0; index < log_prob_idx.size(); index++) {
+      // printf("abs time step: %d, no of prefixes: %d, beam_size: %d\n", state->time_step, state->prefixes.size(), beam_size);
       auto c = log_prob_idx[index].first;
       auto log_prob_c = log_prob_idx[index].second;
 
@@ -97,6 +98,9 @@ DecoderState::next(const double *probs,
         auto prefix_new = prefix->get_path_trie(c, abs_time_step_, log_prob_c);
 
         if (prefix_new != nullptr) {
+          // printf("new prefix: \n");
+          // prefix_new->print(alphabet);
+          // printf("\n\n");
           float log_p = -NUM_FLT_INF;
 
           if (c == prefix->character &&
@@ -108,7 +112,7 @@ DecoderState::next(const double *probs,
 
           // language model scoring
           if (ext_scorer_ != nullptr &&
-              (c == space_id_ || ext_scorer_->is_character_based())) {
+              ((c & 0xC0) != 0x80 || ext_scorer_->is_character_based())) {
             PathTrie *prefix_to_score = nullptr;
             // skip scoring the space
             if (ext_scorer_->is_character_based()) {
@@ -120,6 +124,14 @@ DecoderState::next(const double *probs,
             float score = 0.0;
             std::vector<std::string> ngram;
             ngram = ext_scorer_->make_ngram(prefix_to_score);
+            // printf("scoring ngram: ");
+            // for (string s : ngram) {
+            //   for (char c : s) {
+            //     printf("%c ", c);
+            //   }
+            //   printf("| ");
+            // }
+            // printf("\n");
             bool bos = ngram.size() < ext_scorer_->get_max_order();
             score = ext_scorer_->get_log_cond_prob(ngram, bos) * ext_scorer_->alpha;
             log_p += score;

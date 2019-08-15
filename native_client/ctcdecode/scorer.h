@@ -25,7 +25,9 @@ public:
   RetrieveStrEnumerateVocab() {}
 
   void Add(lm::WordIndex index, const StringPiece &str) {
-    vocabulary.push_back(std::string(str.data(), str.length()));
+    std::string s(str.data(), str.length());
+    // printf("%s\n", s.c_str());
+    vocabulary.push_back(s);
   }
 
   std::vector<std::string> vocabulary;
