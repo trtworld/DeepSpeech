@@ -43,7 +43,7 @@ def sparse_tuple_to_texts(sp_tuple):
 
 def evaluate(test_csvs, create_model, try_loading):
     scorer = Scorer(FLAGS.lm_alpha, FLAGS.lm_beta,
-                    FLAGS.lm_binary_path, FLAGS.lm_trie_path,
+                    FLAGS.lm_binary_path, '',
                     Config.alphabet)
     # scorer = None
 
@@ -114,7 +114,7 @@ def evaluate(test_csvs, create_model, try_loading):
                     break
 
                 decoded = ctc_beam_search_decoder_batch(batch_logits, batch_lengths, Config.alphabet, FLAGS.beam_width,
-                                                        num_processes=num_processes, scorer=scorer, cutoff_prob=0.98, cutoff_top_n=300)
+                                                        num_processes=num_processes, scorer=scorer, cutoff_prob=0.995, cutoff_top_n=300)
                 predictions.extend(d[0][1] for d in decoded)
                 ground_truths.extend(sparse_tensor_value_to_texts(batch_transcripts, Config.alphabet))
                 wav_filenames.extend(wav_filename.decode('UTF-8') for wav_filename in batch_wav_filenames)

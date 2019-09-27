@@ -135,6 +135,7 @@ void Scorer::setup(const std::string& lm_path, const std::string& trie_path)
   }
 
   max_order_ = language_model_->Order();
+  // printf("max order: %d\n", max_order_);
 }
 
 void Scorer::save_dictionary(const std::string& path)
@@ -180,6 +181,7 @@ double Scorer::get_log_cond_prob(const std::vector<std::string>::const_iterator&
 
     // encounter OOV
     if (word_index == lm::kUNK) {
+      // printf("word %s OOV\n", it->c_str());
       return OOV_SCORE;
     }
 
@@ -269,6 +271,10 @@ std::vector<std::string> Scorer::make_ngram(PathTrie* prefix)
   PathTrie* new_node = nullptr;
 
   for (int order = 0; order < max_order_; order++) {
+    if (current_node->character == -1) {
+      break;
+    }
+
     std::vector<int> prefix_vec;
     std::vector<int> prefix_steps;
 
@@ -283,10 +289,6 @@ std::vector<std::string> Scorer::make_ngram(PathTrie* prefix)
     // reconstruct word
     std::string word = alphabet_.LabelsToString(prefix_vec);
     ngram.push_back(word);
-
-    if (new_node->character == -1) {
-      break;
-    }
   }
   std::reverse(ngram.begin(), ngram.end());
   return ngram;

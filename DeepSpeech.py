@@ -15,6 +15,7 @@ import shutil
 import tensorflow as tf
 import tensorflow.compat.v1 as tfv1
 import time
+import json
 
 from datetime import datetime
 from ds_ctcdecoder import ctc_beam_search_decoder, Scorer
@@ -652,7 +653,10 @@ def train():
 
 
 def test():
-    evaluate(FLAGS.test_files.split(','), create_model, try_loading)
+    samples = evaluate(FLAGS.test_files.split(','), create_model, try_loading)
+    if FLAGS.test_output_file:
+        # Save decoded tuples as JSON, converting NumPy floats to Python floats
+        json.dump(samples, open(FLAGS.test_output_file, 'w'), default=float)
 
 
 def create_inference_graph(batch_size=1, n_steps=16, tflite=False):
@@ -873,9 +877,9 @@ def do_single_file_inference(input_file_path):
         logits = np.squeeze(logits)
 
         scorer = Scorer(FLAGS.lm_alpha, FLAGS.lm_beta,
-                        FLAGS.lm_binary_path, FLAGS.lm_trie_path,
+                        FLAGS.lm_binary_path, '',
                         Config.alphabet)
-        decoded = ctc_beam_search_decoder(logits, Config.alphabet, FLAGS.beam_width, scorer=scorer, cutoff_prob=0.99, cutoff_top_n=300)
+        decoded = ctc_beam_search_decoder(logits, Config.alphabet, FLAGS.beam_width, scorer=scorer, cutoff_prob=1.0, cutoff_top_n=300)
         # Print highest probability result
         print(decoded[0][1])
 
