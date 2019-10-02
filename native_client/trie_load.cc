@@ -25,7 +25,7 @@ int main(int argc, char** argv)
     return err;
   }
   Scorer scorer;
-  return scorer.init(0.0, 0.0, kenlm_path, trie_path, alphabet);
+  scorer.init(0.0, 0.0, kenlm_path, trie_path, alphabet);
 
   using FstType = fst::ConstFst<fst::StdArc>;
 

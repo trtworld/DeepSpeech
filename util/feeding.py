@@ -127,15 +127,14 @@ def create_dataset(csvs, batch_size, cache_path='', train_phase=False):
         wav_filenames = wav_filenames.batch(batch_size)
         return tf.data.Dataset.zip((wav_filenames, features, transcripts))
 
-    num_gpus = len(Config.available_devices)
     process_fn = partial(entry_to_features, train_phase=train_phase)
 
     dataset = (tf.data.Dataset.from_generator(generate_values,
                                               output_types=(tf.string, (tf.int64, tf.int32, tf.int64)))
                               .map(process_fn, num_parallel_calls=tf.data.experimental.AUTOTUNE)
                               .cache(cache_path)
-                              .window(batch_size, drop_remainder=True).flat_map(batch_fn)
-                              .prefetch(num_gpus))
+                              .window(batch_size).flat_map(batch_fn)
+                              .prefetch(tf.data.experimental.AUTOTUNE))
 
     return dataset
 

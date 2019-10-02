@@ -9,6 +9,7 @@ LOG_LEVEL_INDEX = sys.argv.index('--log_level') + 1 if '--log_level' in sys.argv
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = sys.argv[LOG_LEVEL_INDEX] if 0 < LOG_LEVEL_INDEX < len(sys.argv) else '3'
 
 import absl.app
+import google
 import numpy as np
 import progressbar
 import shutil
@@ -22,6 +23,7 @@ from ds_ctcdecoder import ctc_beam_search_decoder, Scorer
 from evaluate import evaluate
 from six.moves import zip, range
 from tensorflow.python.tools import freeze_graph, strip_unused_lib
+from tensorflow.python.client import timeline
 from util.config import Config, initialize_globals
 from util.feeding import create_dataset, samples_to_mfccs, audiofile_to_features
 from util.flags import create_flags, FLAGS
@@ -574,10 +576,14 @@ def train():
 
             # Batch loop
             while True:
+                run_options = tfv1.RunOptions(trace_level=tfv1.RunOptions.FULL_TRACE,
+                                              output_partition_graphs=True)
+                run_metadata = tfv1.RunMetadata()
+
                 try:
                     _, current_step, batch_loss, problem_files, step_summary = \
                         session.run([train_op, global_step, loss, non_finite_files, step_summaries_op],
-                                    feed_dict=feed_dict)
+                                    feed_dict=feed_dict, options=run_options, run_metadata=run_metadata)
                 except tf.errors.OutOfRangeError:
                     break
 
@@ -590,6 +596,13 @@ def train():
                 step_count += 1
 
                 pbar.update(step_count)
+
+                tl = timeline.Timeline(run_metadata.step_stats)
+                ctf = tl.generate_chrome_trace_format()
+                with open('timeline_{}.json'.format(current_step), 'w') as fout:
+                    fout.write(ctf)
+                with open('run_metadata_{}.pbtxt'.format(current_step), 'w') as fout:
+                    fout.write(google.protobuf.text_format.MessageToString(run_metadata))
 
                 step_summary_writer.add_summary(step_summary, current_step)
 
